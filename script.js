@@ -6,9 +6,10 @@ const Box = document.getElementById("canvasBox")
 const canvas = document.getElementById("canvas")
 const input = document.getElementById("input")
 const ctx = canvas.getContext("2d")
-input.value = ""
+input.value = "y=1/x"
 var vtx = []
-const samples = 300
+var toSkip = []
+const samples = 2400
 
 const resize = new ResizeObserver(() => {
     Update()
@@ -47,53 +48,81 @@ function drawGrid() {
 input.addEventListener("change", Update)
 
 function drawPoints() {
-    let arrSol = solve(input.value)
-    if (arrSol !== undefined) {
-        for (let i = 0; i < arrSol.length; i++) {
+    if (input.value.length != 0) {
+        console.log("sopra")
+        if (input.value.toString().replaceAll(" ", "").replace("y=", "").indexOf("y") == -1) {
             vtx = []
-            let exp = algebra.parse(arrSol[i])
-            console.log(exp.toString())
+            toSkip = []
+            let In = input.value.toString().toLowerCase().replaceAll(" ", "").replace("y=", "").replace(/\^/g, "**").replace(/sqrt\(([^)]+)\)/g, "Math.sqrt($1)")
+            console.log(In)
             ctx.fillStyle = "#fff"
             for (let i = 0; i < samples+1; i++) {
-                var x = (i - Math.floor(samples/2))/Math.floor(samples/30)
-                var y = eval(exp.eval({x: algebra.parse(`${x}`)}).toString())
-                vtx.push([x*canvas.width/30+canvas.width/2, -y*canvas.width/30+canvas.height/2])
+                const x = (i - Math.floor(samples/2))/Math.floor(samples/30)
+                const y = eval(In)
+                console.log(x, y)
+                if (isFinite(y)) {
+                    vtx.push([Math.round(x*canvas.width/30+canvas.width/2), Math.round(-y*canvas.width/30+canvas.height/2)])
+                    toSkip.push(i)
+                }
             }
             DrawLines()
+        } else {
+            console.log("sotto")
+            let arrSol = solve(input.value)
+            if (arrSol !== undefined) {
+                for (let i = 0; i < arrSol.length; i++) {
+                    vtx = []
+                    let exp = algebra.parse(arrSol[i])
+                    console.log(exp.toString())
+                    ctx.fillStyle = "#fff"
+                    for (let i = 0; i < samples+1; i++) {
+                        var x = (i - Math.floor(samples/2))/Math.floor(samples/30)
+                        var y = eval(exp.eval({x: algebra.parse(`${x}`)}).toString())
+                        vtx.push([x*canvas.width/30+canvas.width/2, -y*canvas.width/30+canvas.height/2])
+                    }
+                    DrawLines()
+                }
+            } else {
+                alert("Invalid input")
+            }
         }
-    } else {
-        alert("Invalid input")
     }
+}
+
+function calc(In, x) {
+    return eval(In.replaceAll("x", `${x}`))
 }
 
 function DrawLines() {
     for (let i = 0; i < vtx.length-1; i++) {
-        var P1 = vtx[i]
-        var P2 = vtx[i+1]
-        let y = P1[1], x = P1[0]
-        let Dx = Math.abs(P2[0] - P1[0]), Dy = Math.abs(P2[1] - P1[1]), S1 = Math.sign(P2[0] - P1[0]), S2 = Math.sign(P2[1] - P1[1]), Change = 0
-        if (Dy > Dx) {
-            let temp = Dx
-            Dx = Dy
-            Dy = temp
-            Change = 1
-        }
-        let E = 2 * Dy - Dx, A = 2 * Dy, B = 2 * Dy - 2 * Dx
-        ctx.fillRect(x, y, 1, 1)
-        for (let i = 0; i < Dx; i++) {
-        if (E < 0) {
-            if (Change == 1) {
-            y += S2
-            } else {
-            x += S1
+        if (toSkip.indexOf(i+1) != -1) {
+            var P1 = vtx[i]
+            var P2 = vtx[i+1]
+            let y = P1[1], x = P1[0]
+            let Dx = Math.abs(P2[0] - P1[0]), Dy = Math.abs(P2[1] - P1[1]), S1 = Math.sign(P2[0] - P1[0]), S2 = Math.sign(P2[1] - P1[1]), Change = 0
+            if (Dy > Dx) {
+                let temp = Dx
+                Dx = Dy
+                Dy = temp
+                Change = 1
             }
-            E += A
-        } else {
-            y += S2
-            x += S1
-            E += B
-        }
-        ctx.fillRect(x, y, 2, 2)
+            let E = 2 * Dy - Dx, A = 2 * Dy, B = 2 * Dy - 2 * Dx
+            ctx.fillRect(x, y, 1, 1)
+            for (let i = 0; i < Dx; i++) {
+            if (E < 0) {
+                if (Change == 1) {
+                y += S2
+                } else {
+                x += S1
+                }
+                E += A
+            } else {
+                y += S2
+                x += S1
+                E += B
+            }
+            ctx.fillRect(x, y, 2, 2)
+            }
         }
     }
 }
