@@ -1,8 +1,12 @@
+var Fraction = algebra.Fraction;
+var Expression = algebra.Expression;
+var Equation = algebra.Equation;
+
 const Box = document.getElementById("canvasBox")
 const canvas = document.getElementById("canvas")
 const input = document.getElementById("input")
 const ctx = canvas.getContext("2d")
-input.value = "y=x^2"
+input.value = "y=x^(1/2)"
 var vtx = []
 const samples = 300
 
@@ -45,19 +49,14 @@ function drawGrid() {
 input.addEventListener("change", Update)
 
 function drawPoints() {
-    let In = input.value.toString().toLowerCase().replaceAll(" ", "").replace("y=", "").replace(/\^/g, "**").replace(/sqrt\(([^)]+)\)/g, "Math.sqrt($1)")
-    console.log(In)
+    let exp = algebra.parse(solve(input.value).replace("y=", ""))
+    console.log(exp.toString())
     ctx.fillStyle = "#fff"
     for (let i = 0; i < samples+1; i++) {
-        const x = (i - Math.floor(samples/2))/Math.floor(samples/30)
-        const y = eval(In)
-        console.log(x, y)
+        var x = (i - Math.floor(samples/2))/Math.floor(samples/30)
+        var y = eval(exp.eval({x: algebra.parse(`${x}`)}).toString())
         vtx.push([x*canvas.width/30+canvas.width/2, -y*canvas.width/30+canvas.height/2])
     }
-}
-
-function calc(In, x) {
-    return eval(In.replace("x", `*${x}`))
 }
 
 function DrawLines() {
@@ -88,6 +87,16 @@ function DrawLines() {
             E += B
         }
         ctx.fillRect(x, y, 2, 2)
-      }
+        }
     }
-  }
+}
+
+function solve(eqRaw) {
+    let eqArr = eqRaw.split("=")
+    let eq1 = algebra.parse(eqArr[0])
+    let eq2 = algebra.parse(eqArr[1])
+    console.log("eq2: " + eq2, eqArr[1])
+    var eq = new Equation(eq1, eq2)
+    let sol = eq.solveFor("y")
+    return "y="+sol.toString().trim()
+}
