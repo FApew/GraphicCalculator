@@ -12,17 +12,17 @@ app.get("/", (req, res) => {
     res.type("html")
 });
 
-app.get("/", (req, res) => {
+app.get("/style.css", (req, res) => {
     res.sendFile(__dirname + "/style.css")
     res.type("css")
 });
 
-app.get("/", (req, res) => {
+app.get("/script.js", (req, res) => {
     res.sendFile(__dirname + "/script.js")
     res.type("application/javascript")
 });
 
-app.get("/", (req, res) => {
+app.get("/algebra-0.2.6.min.js", (req, res) => {
     res.sendFile(__dirname + "/algebra-0.2.6.min.js")
     res.type("application/javascript")
 });
