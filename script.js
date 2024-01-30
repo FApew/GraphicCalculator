@@ -6,7 +6,7 @@ const Box = document.getElementById("canvasBox")
 const canvas = document.getElementById("canvas")
 const input = document.getElementById("input")
 const ctx = canvas.getContext("2d")
-input.value = "y=x^(1/2)"
+input.value = ""
 var vtx = []
 const samples = 300
 
@@ -16,7 +16,6 @@ const resize = new ResizeObserver(() => {
 resize.observe(Box)
 
 function Update() {
-    vtx = []
     canvas.width = Box.clientWidth
     canvas.height = Box.clientHeight
     ctx.fillStyle = "#404040"
@@ -24,7 +23,6 @@ function Update() {
     drawAxis()
     drawGrid()
     drawPoints()
-    DrawLines()
 }
 
 function drawAxis() {
@@ -49,13 +47,22 @@ function drawGrid() {
 input.addEventListener("change", Update)
 
 function drawPoints() {
-    let exp = algebra.parse(solve(input.value).replace("y=", ""))
-    console.log(exp.toString())
-    ctx.fillStyle = "#fff"
-    for (let i = 0; i < samples+1; i++) {
-        var x = (i - Math.floor(samples/2))/Math.floor(samples/30)
-        var y = eval(exp.eval({x: algebra.parse(`${x}`)}).toString())
-        vtx.push([x*canvas.width/30+canvas.width/2, -y*canvas.width/30+canvas.height/2])
+    let arrSol = solve(input.value)
+    if (arrSol !== undefined) {
+        for (let i = 0; i < arrSol.length; i++) {
+            vtx = []
+            let exp = algebra.parse(arrSol[i])
+            console.log(exp.toString())
+            ctx.fillStyle = "#fff"
+            for (let i = 0; i < samples+1; i++) {
+                var x = (i - Math.floor(samples/2))/Math.floor(samples/30)
+                var y = eval(exp.eval({x: algebra.parse(`${x}`)}).toString())
+                vtx.push([x*canvas.width/30+canvas.width/2, -y*canvas.width/30+canvas.height/2])
+            }
+            DrawLines()
+        }
+    } else {
+        alert("Invalid input")
     }
 }
 
@@ -95,8 +102,8 @@ function solve(eqRaw) {
     let eqArr = eqRaw.split("=")
     let eq1 = algebra.parse(eqArr[0])
     let eq2 = algebra.parse(eqArr[1])
-    console.log("eq2: " + eq2, eqArr[1])
+    console.log("Eq: ", eq1.toString(), eq2.toString())
     var eq = new Equation(eq1, eq2)
     let sol = eq.solveFor("y")
-    return "y="+sol.toString().trim()
+    return sol !== undefined ? sol.toString().trim().split(","): sol
 }
