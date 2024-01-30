@@ -22,6 +22,11 @@ app.get("/", (req, res) => {
     res.type("application/javascript")
 });
 
+app.get("/", (req, res) => {
+    res.sendFile(__dirname + "/algebra-0.2.6.min.js")
+    res.type("application/javascript")
+});
+
 app.listen(8080);
 
 console.log("App listening on https://localhost:8080/");
