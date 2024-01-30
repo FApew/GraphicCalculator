@@ -9,7 +9,7 @@ const ctx = canvas.getContext("2d")
 input.value = "y=1/x"
 var vtx = []
 var toSkip = []
-const samples = 2400
+const samples = 600
 
 const resize = new ResizeObserver(() => {
     Update()
@@ -60,9 +60,13 @@ function drawPoints() {
                 const x = (i - Math.floor(samples/2))/Math.floor(samples/30)
                 const y = eval(In)
                 console.log(x, y)
-                if (isFinite(y)) {
-                    vtx.push([Math.round(x*canvas.width/30+canvas.width/2), Math.round(-y*canvas.width/30+canvas.height/2)])
+                
+                if (!isFinite(y)) {
                     toSkip.push(i)
+                    console.log(toSkip)
+                    vtx.push([0,0])
+                } else {
+                    vtx.push([Math.round(x*canvas.width/30+canvas.width/2), Math.round(-y*canvas.width/30+canvas.height/2)])
                 }
             }
             DrawLines()
@@ -72,6 +76,7 @@ function drawPoints() {
             if (arrSol !== undefined) {
                 for (let i = 0; i < arrSol.length; i++) {
                     vtx = []
+                    toSkip = []
                     let exp = algebra.parse(arrSol[i])
                     console.log(exp.toString())
                     ctx.fillStyle = "#fff"
@@ -94,8 +99,8 @@ function calc(In, x) {
 }
 
 function DrawLines() {
-    for (let i = 0; i < vtx.length-1; i++) {
-        if (toSkip.indexOf(i+1) != -1) {
+    for (let i = 0; i < samples-1; i++) {
+        if (toSkip.indexOf(i) == -1 && toSkip.indexOf(i+1) == -1) {
             var P1 = vtx[i]
             var P2 = vtx[i+1]
             let y = P1[1], x = P1[0]
