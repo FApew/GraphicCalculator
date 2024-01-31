@@ -122,6 +122,12 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    cursor: pointer;
+}
+
+#Done:hover {
+    box-shadow: inset 100px 100px 100px #303030;
+    color: white;
 }
 
 #canvasBoxBox {
