@@ -9,7 +9,7 @@ const Isamp = document.getElementById("Isamp")
 const Osamp = document.getElementById("Osamp")
 const Done = document.getElementById("Done")
 const ctx = canvas.getContext("2d")
-input.value = "x^2+y^2=4"
+input.value = ""
 Isamp.value = 1200
 let samples
 var vtx = []
