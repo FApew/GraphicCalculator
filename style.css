@@ -21,28 +21,107 @@ body {
     box-shadow:  41px 41px 82px #262626, -41px -41px 82px #3a3a3a;
 }
 
-#inBox {
-    left: 1vw;
-    top: 1vw;
-    position: absolute;
-    width: 15%;
-    height: 15%;
-    background-color: #e8e8e83b;
-    z-index: 3;
-    border-radius: 20px;
-    display: grid;
-    place-items: center;
+@media only screen and (min-width: 647px) {
+    #inBox {
+        left: 1vw;
+        top: 1vw;
+        position: absolute;
+        width: 30%;
+        height: 15%;
+        background-color: #e8e8e83b;
+        z-index: 3;
+        border-radius: 20px;
+        display: grid;
+        grid-template-rows: 50% 50%;
+        grid-template-columns: 100%;
+    }
+
+    #input {
+        font-size: 1vw;
+    }
+
+    #Osamp {
+        font-size: 1vw;
+    }
+
+    #Done {
+        font-size: 1vw;
+    }
+}
+
+@media only screen and (max-width: 647px) {
+    #inBox {
+        left: 1vw;
+        top: 1vw;
+        position: absolute;
+        width: 100%;
+        height: 15%;
+        background-color: #e8e8e83b;
+        z-index: 3;
+        border-radius: 20px;
+        display: grid;
+        grid-template-rows: 50% 50%;
+        grid-template-columns: 100%;
+    }
+
+    #input {
+        font-size: 1.6vh;
+    }
+
+    #Osamp {
+        font-size: 1.6vh;
+    }
+
+    #Done {
+        font-size: 1.6vh;
+    }
 }
 
 #input {
     width: 90%;
-    height: 20%;
+    height: 40%;
     background-color: #3a3a3a;
     border: 0;
     outline: none;
     color: white;
-    font-size: 1vw;
     font-family: 'Noto Sans', sans-serif;
+    justify-self: center;
+    align-self: center;
+}
+
+#sliderBox {
+    display: grid;
+    grid-template-columns: 15% 60% 25%;
+    grid-template-rows: 100%;
+}
+
+#Isamp {
+    width: 100%;
+    justify-self: center;
+    align-self: center;
+
+}
+
+#Osamp {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-family: 'Noto Sans', sans-serif;
+}
+
+#Done {
+    width: 70%;
+    height: 60%;
+    align-self: center;
+    justify-self: center;
+    border-radius: 60px;
+    background-color: #3a3a3a;
+    color: #262626;
+    font-family: 'Noto Sans', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 #canvasBoxBox {

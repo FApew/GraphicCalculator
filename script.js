@@ -5,18 +5,32 @@ var Equation = algebra.Equation;
 const Box = document.getElementById("canvasBox")
 const canvas = document.getElementById("canvas")
 const input = document.getElementById("input")
+const Isamp = document.getElementById("Isamp")
+const Osamp = document.getElementById("Osamp")
+const Done = document.getElementById("Done")
 const ctx = canvas.getContext("2d")
 input.value = "y=1/x"
+Isamp.value = 1200
+let samples
 var vtx = []
 var toSkip = []
-const samples = 600
+var vtxtemp = []
 
 const resize = new ResizeObserver(() => {
     Update()
 })
 resize.observe(Box)
 
-function Update() {
+Isamp.addEventListener("change", Update)
+
+async function Update() {
+    let startTime = new Date()
+    Done.style.backgroundColor = "#3a3a3a";
+    Done.innerHTML = ""
+
+    await new Promise(resolve => setTimeout(resolve, 0))
+    samples = parseInt(Isamp.value)
+    Osamp.innerHTML = samples
     canvas.width = Box.clientWidth
     canvas.height = Box.clientHeight
     ctx.fillStyle = "#404040"
@@ -24,7 +38,14 @@ function Update() {
     drawAxis()
     drawGrid()
     drawPoints()
+
+    await new Promise(resolve => setTimeout(resolve, 0))
+    Done.style.backgroundColor = "#fff"
+
+    let timeDiff = new Date() - startTime
+    Done.innerHTML = `${timeDiff}ms`
 }
+
 
 function drawAxis() {
     ctx.fillStyle = "#303030"
@@ -49,57 +70,58 @@ input.addEventListener("change", Update)
 
 function drawPoints() {
     if (input.value.length != 0) {
-        console.log("sopra")
-        if (input.value.toString().replaceAll(" ", "").replace("y=", "").indexOf("y") == -1) {
-            vtx = []
-            toSkip = []
-            let In = input.value.toString().toLowerCase().replaceAll(" ", "").replace("y=", "").replace(/\^/g, "**").replace(/sqrt\(([^)]+)\)/g, "Math.sqrt($1)")
-            console.log(In)
-            ctx.fillStyle = "#fff"
-            for (let i = 0; i < samples+1; i++) {
-                const x = (i - Math.floor(samples/2))/Math.floor(samples/30)
-                const y = eval(In)
-                console.log(x, y)
-                
-                if (!isFinite(y)) {
-                    toSkip.push(i)
-                    console.log(toSkip)
-                    vtx.push([0,0])
-                } else {
-                    vtx.push([Math.round(x*canvas.width/30+canvas.width/2), Math.round(-y*canvas.width/30+canvas.height/2)])
-                }
+        let In = input.value.split("=")
+        let Exp = [In[0].toString(), In[1].toString()]
+        vtx = []
+        toSkip = []
+        ctx.fillStyle = "#fff"
+        let temp
+        for (let i = 0; i < samples+1; i++) {
+            var x = (i - Math.floor(samples/2))/Math.floor(samples/30)
+            let ExpX = [Exp[0], Exp[1]]
+            for (let i = 0; i < 2; i++) {
+                ExpX[i] = normalize(ExpX[i].replaceAll("x", `(${x})`))
             }
-            DrawLines()
-        } else {
-            console.log("sotto")
-            let arrSol = solve(input.value)
-            if (arrSol !== undefined) {
-                for (let i = 0; i < arrSol.length; i++) {
-                    vtx = []
-                    toSkip = []
-                    let exp = algebra.parse(arrSol[i])
-                    console.log(exp.toString())
-                    ctx.fillStyle = "#fff"
-                    for (let i = 0; i < samples+1; i++) {
-                        var x = (i - Math.floor(samples/2))/Math.floor(samples/30)
-                        var y = eval(exp.eval({x: algebra.parse(`${x}`)}).toString())
-                        vtx.push([x*canvas.width/30+canvas.width/2, -y*canvas.width/30+canvas.height/2])
+            try {
+                let eq = new Equation(algebra.parse(ExpX[0]), algebra.parse(ExpX[1]))
+                let Soly = Array(eq.solveFor("y"))
+                
+                Soly.forEach((varY) => {
+                    let y = eval(varY.toString())
+                    console.log(`Sample ${i}: `, "X: " + x, "Y: " + y)
+                    vtx.push([x*canvas.width/30+canvas.width/2, -y*canvas.width/30+canvas.height/2])
+                    if(i!=0)
+                    if (Math.abs(y-temp) > canvas.width/50) {
+                        toSkip.push(i)
                     }
-                    DrawLines()
+                    temp = y
+                })
+            } catch (e) {
+                if (e instanceof EvalError) {
+                    toSkip.push(i)
                 }
-            } else {
-                alert("Invalid input")
             }
         }
+        DrawLines()
+    } else {
+        alert("Invalid input")
     }
 }
 
-function calc(In, x) {
-    return eval(In.replaceAll("x", `${x}`))
+function normalize(exp) {
+    return exp.replaceAll(/sqrt\(([^]+)\)/g, (match, content) => {
+        return Math.sqrt(eval(content))
+    }).replaceAll(/cos\(([^]+)\)/g, (match, content) => {
+        return Math.cos(eval(content.replaceAll("^", "**")))
+    }).replaceAll(/sin\(([^]+)\)/g, (match, content) => {
+        return Math.sin(eval(content.replaceAll("^", "**")))
+    }).replaceAll(/tan\(([^]+)\)/g, (match, content) => {
+        return Math.tan(eval(content.replaceAll("^", "**")))
+    })
 }
 
 function DrawLines() {
-    for (let i = 0; i < samples-1; i++) {
+    for (let i = 0; i < vtx.length-1; i++) {
         if (toSkip.indexOf(i) == -1 && toSkip.indexOf(i+1) == -1) {
             var P1 = vtx[i]
             var P2 = vtx[i+1]
@@ -112,7 +134,7 @@ function DrawLines() {
                 Change = 1
             }
             let E = 2 * Dy - Dx, A = 2 * Dy, B = 2 * Dy - 2 * Dx
-            ctx.fillRect(x, y, 1, 1)
+            ctx.fillRect(x-1, y-1, 2, 2)
             for (let i = 0; i < Dx; i++) {
             if (E < 0) {
                 if (Change == 1) {
@@ -126,18 +148,8 @@ function DrawLines() {
                 x += S1
                 E += B
             }
-            ctx.fillRect(x, y, 2, 2)
+            ctx.fillRect(x-1, y-1, 2, 2)
             }
         }
     }
-}
-
-function solve(eqRaw) {
-    let eqArr = eqRaw.split("=")
-    let eq1 = algebra.parse(eqArr[0])
-    let eq2 = algebra.parse(eqArr[1])
-    console.log("Eq: ", eq1.toString(), eq2.toString())
-    var eq = new Equation(eq1, eq2)
-    let sol = eq.solveFor("y")
-    return sol !== undefined ? sol.toString().trim().split(","): sol
 }
