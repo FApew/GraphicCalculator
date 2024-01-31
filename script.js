@@ -105,8 +105,6 @@ function drawPoints() {
             }
         }
         DrawLines()
-    } else {
-        alert("Invalid input")
     }
 }
 
