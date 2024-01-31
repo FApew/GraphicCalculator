@@ -9,7 +9,7 @@ const Isamp = document.getElementById("Isamp")
 const Osamp = document.getElementById("Osamp")
 const Done = document.getElementById("Done")
 const ctx = canvas.getContext("2d")
-input.value = "y=1/x"
+input.value = "x^2+y^2=4"
 Isamp.value = 1200
 let samples
 var vtx = []
@@ -84,9 +84,11 @@ function drawPoints() {
             }
             try {
                 let eq = new Equation(algebra.parse(ExpX[0]), algebra.parse(ExpX[1]))
-                let Soly = Array(eq.solveFor("y"))
-                
-                Soly.forEach((varY) => {
+                let solY = eq.solveFor("y")
+                if (!Array.isArray(solY)) {
+                    solY = [solY];
+                }
+                solY.forEach((varY) => {
                     let y = eval(varY.toString())
                     console.log(`Sample ${i}: `, "X: " + x, "Y: " + y)
                     vtx.push([x*canvas.width/30+canvas.width/2, -y*canvas.width/30+canvas.height/2])
