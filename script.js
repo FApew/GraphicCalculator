@@ -9,7 +9,7 @@ const Isamp = document.getElementById("Isamp")
 const Osamp = document.getElementById("Osamp")
 const Done = document.getElementById("Done")
 const ctx = canvas.getContext("2d")
-input.value = "y^2=abs(x)^3"
+input.value = ""
 Isamp.value = 1200
 let samples
 var vtx = []
