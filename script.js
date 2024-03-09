@@ -27,7 +27,6 @@ Done.addEventListener("click", () => {
 })
 
 async function Update() {
-    let startTime = new Date()
     Done.style.backgroundColor = "#3a3a3a";
     Done.innerHTML = ""
     stop = true
@@ -51,9 +50,6 @@ async function Update() {
 
     await new Promise(resolve => setTimeout(resolve, 0))
     Done.style.backgroundColor = "#fff"
-
-    let timeDiff = new Date() - startTime
-    Done.innerHTML = `${timeDiff}ms`
 }
 
 function drawAxis() {
@@ -88,6 +84,7 @@ async function drawPoints() {
         let temp
         for (let i = 0; i < samples+1; i++) {
             if (!stop) {
+                Done.innerHTML = `${Math.round(i/samples*10000)/100}%`
                 var x = (i - Math.floor(samples/2))/Math.floor(samples/30)
                 let ExpX = [Exp[0], Exp[1]]
                 for (let i = 0; i < 2; i++) {
@@ -101,18 +98,15 @@ async function drawPoints() {
                     }
                     solY.forEach((varY) => {
                         let y = eval(varY.toString())
-                        //console.log(`Sample ${i}: `, "X: " + x, "Y: " + y)
                         vtx.push([x*canvas.width/30+canvas.width/2, -y*canvas.width/30+canvas.height/2])
                         ctx.fillRect(x*canvas.width/30+canvas.width/2-1, -y*canvas.width/30+canvas.height/2, 2, 2)
                         if(i!=0)
                         if (Math.abs(y-temp) > canvas.width/50 && solY.length == 1) {
-                            //console.log("Off")
                             toSkip.push(i)
                         }
                         temp = y
                     })
                 } catch (e) {
-                    //console.log(`Sample ${i}: `, "X: " + x, "Y: " + undefined)
                     if (e instanceof EvalError) {
                         toSkip.push(i)
                     }
