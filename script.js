@@ -9,13 +9,10 @@ const Isamp = document.getElementById("Isamp")
 const Osamp = document.getElementById("Osamp")
 const Done = document.getElementById("Done")
 const ctx = canvas.getContext("2d")
-input.value = ""
+input.value = "y=abs(cos(x^2)/sin(x/2))"
 Isamp.value = 1200
-let samples
-var vtx = []
-var toSkip = []
-var vtxtemp = []
-var dots = true
+
+let samples, vtx = [], toSkip = [], vtxtemp = [], dots = true, stop = false, running = false
 
 const resize = new ResizeObserver(() => {
     Update()
@@ -33,6 +30,7 @@ async function Update() {
     let startTime = new Date()
     Done.style.backgroundColor = "#3a3a3a";
     Done.innerHTML = ""
+    stop = true
 
     await new Promise(resolve => setTimeout(resolve, 0))
     samples = parseInt(Isamp.value)
@@ -43,8 +41,13 @@ async function Update() {
     ctx.fillRect(0, 0, canvas.width, canvas.height)
     drawAxis()
     drawGrid()
+    while (running) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    stop = false
+
+    await new Promise(resolve => setTimeout(resolve, 0))
     drawPoints()
-    console.log("\n\n" + Array(50).fill("#").join("") + "\n\n")
 
     await new Promise(resolve => setTimeout(resolve, 0))
     Done.style.backgroundColor = "#fff"
@@ -52,7 +55,6 @@ async function Update() {
     let timeDiff = new Date() - startTime
     Done.innerHTML = `${timeDiff}ms`
 }
-
 
 function drawAxis() {
     ctx.fillStyle = "#303030"
@@ -75,7 +77,8 @@ function drawGrid() {
 
 input.addEventListener("change", Update)
 
-function drawPoints() {
+async function drawPoints() {
+    running = true
     if (input.value.length != 0) {
         let In = input.value.split("=")
         let Exp = [In[0].toString(), In[1].toString()]
@@ -84,66 +87,80 @@ function drawPoints() {
         ctx.fillStyle = "#fff"
         let temp
         for (let i = 0; i < samples+1; i++) {
-            var x = (i - Math.floor(samples/2))/Math.floor(samples/30)
-            let ExpX = [Exp[0], Exp[1]]
-            for (let i = 0; i < 2; i++) {
-                ExpX[i] = normalize(ExpX[i].replaceAll("x", `(${x})`))
-            }
-            try {
-                let eq = new Equation(algebra.parse(ExpX[0]), algebra.parse(ExpX[1]))
-                let solY = eq.solveFor("y")
-                if (!Array.isArray(solY)) {
-                    solY = [solY];
+            if (!stop) {
+                var x = (i - Math.floor(samples/2))/Math.floor(samples/30)
+                let ExpX = [Exp[0], Exp[1]]
+                for (let i = 0; i < 2; i++) {
+                    ExpX[i] = normalize(ExpX[i].replaceAll("x", `(${x})`))
                 }
-                solY.forEach((varY) => {
-                    let y = eval(varY.toString())
-                    console.log(`Sample ${i}: `, "X: " + x, "Y: " + y)
-                    vtx.push([x*canvas.width/30+canvas.width/2, -y*canvas.width/30+canvas.height/2])
-                    if(i!=0)
-                    if (Math.abs(y-temp) > canvas.width/50 && solY.length == 1) {
-                        console.log("Off")
+                try {
+                    let eq = new Equation(algebra.parse(ExpX[0]), algebra.parse(ExpX[1]))
+                    let solY = eq.solveFor("y")
+                    if (!Array.isArray(solY)) {
+                        solY = [solY];
+                    }
+                    solY.forEach((varY) => {
+                        let y = eval(varY.toString())
+                        //console.log(`Sample ${i}: `, "X: " + x, "Y: " + y)
+                        vtx.push([x*canvas.width/30+canvas.width/2, -y*canvas.width/30+canvas.height/2])
+                        ctx.fillRect(x*canvas.width/30+canvas.width/2-1, -y*canvas.width/30+canvas.height/2, 2, 2)
+                        if(i!=0)
+                        if (Math.abs(y-temp) > canvas.width/50 && solY.length == 1) {
+                            //console.log("Off")
+                            toSkip.push(i)
+                        }
+                        temp = y
+                    })
+                } catch (e) {
+                    //console.log(`Sample ${i}: `, "X: " + x, "Y: " + undefined)
+                    if (e instanceof EvalError) {
                         toSkip.push(i)
                     }
-                    temp = y
-                })
-            } catch (e) {
-                console.log(`Sample ${i}: `, "X: " + x, "Y: " + undefined)
-                if (e instanceof EvalError) {
-                    toSkip.push(i)
                 }
+                if (i%Math.round(((samples/24000)*10)) == 0) {
+                    await new Promise(resolve => setTimeout(resolve, 0))
+                }
+            } else {
+                running = false
+                return
             }
         }
+        
         DrawLines()
+        running = false
     }
 }
 
 function normalize(exp) {
-    let result = exp
+    let res = exp
     let idxs
-    idxs = indeces(exp, "cos")
+    idxs = indeces(res, "cos")
     for (let i = 0; i < idxs.length; i++) {
-        result = result.replace(exp.slice(idxs[i], closeB(exp, idxs[i], 4)+1), `(${Math.cos(eval(exp.slice(idxs[i]+3, closeB(exp, idxs[i], 4)+1).replaceAll("^", "**")))})`)
+        let arg = normalize(res.slice(idxs[i]+3, closeB(res, idxs[i], 4)+1))
+        res = res.replace(res.slice(idxs[i], closeB(res, idxs[i], 4)+1), `(${Math.cos(eval(arg.replaceAll("^", "**")))})`)
     }
-    idxs = indeces(exp, "sin")
+    idxs = indeces(res, "sin")
     for (let i = 0; i < idxs.length; i++) {
-        result = result.replace(exp.slice(idxs[i], closeB(exp, idxs[i], 4)+1), `(${Math.sin(eval(exp.slice(idxs[i]+3, closeB(exp, idxs[i], 4)+1).replaceAll("^", "**")))})`)
+        let arg = normalize(res.slice(idxs[i]+3, closeB(res, idxs[i], 4)+1))
+        res = res.replace(res.slice(idxs[i], closeB(res, idxs[i], 4)+1), `(${Math.sin(eval(arg.replaceAll("^", "**")))})`)
     }
-    idxs = indeces(exp, "tan")
+    idxs = indeces(res, "tan")
     for (let i = 0; i < idxs.length; i++) {
-        result = result.replace(exp.slice(idxs[i], closeB(exp, idxs[i], 4)+1), `(${Math.tan(eval(exp.slice(idxs[i]+3, closeB(exp, idxs[i], 4)+1).replaceAll("^", "**")))})`)
+        let arg = normalize(res.slice(idxs[i]+3, closeB(res, idxs[i], 4)+1))
+        res = res.replace(res.slice(idxs[i], closeB(res, idxs[i], 4)+1), `(${Math.tan(eval(arg.replaceAll("^", "**")))})`)
     }
-    idxs = indeces(exp, "abs")
+    idxs = indeces(res, "abs")
     for (let i = 0; i < idxs.length; i++) {
-        result = result.replace(exp.slice(idxs[i], closeB(exp, idxs[i], 4)+1), `(${Math.abs(eval(exp.slice(idxs[i]+3, closeB(exp, idxs[i], 4)+1).replaceAll("^", "**")))})`)
+        let arg = normalize(res.slice(idxs[i]+3, closeB(res, idxs[i], 4)+1))
+        res = res.replace(res.slice(idxs[i], closeB(res, idxs[i], 4)+1), `(${Math.abs(eval(arg.replaceAll("^", "**")))})`)
     }
-    idxs = indeces(exp, "sqrt")
+    idxs = indeces(res, "sqrt")
     for (let i = 0; i < idxs.length; i++) {
-        let val = eval(exp.slice(idxs[i]+4, closeB(exp, idxs[i], 5)+1).replaceAll("^", "**"))
-        if (val >= 0) {
-            result = result.replace(exp.slice(idxs[i], closeB(exp, idxs[i], 5)+1), `(${Math.sqrt(val)})`)
-        }
+        let arg = normalize(res.slice(idxs[i]+4, closeB(res, idxs[i], 5)+1))
+        let val = eval(arg.replaceAll("^", "**"))
+        res = val >= 0 ? res.replace(res.slice(idxs[i], closeB(res, idxs[i], 5)+1), `(${Math.sqrt(eval(arg.replaceAll("^", "**")))})`) : res = res
     }
-    return result
+    return res
 }
 
 function indeces(str, substr) {
@@ -174,35 +191,34 @@ function closeB(str, idx, offset) {
 }
 
 function DrawLines() {
-    
-    for (let i = 0; i < vtx.length-1; i++) {
-        if (toSkip.indexOf(i) == -1 && toSkip.indexOf(i+1) == -1) {
-            var P1 = vtx[i]
-            var P2 = vtx[i+1]
-            let y = P1[1], x = P1[0]
-            let Dx = Math.abs(P2[0] - P1[0]), Dy = Math.abs(P2[1] - P1[1]), S1 = Math.sign(P2[0] - P1[0]), S2 = Math.sign(P2[1] - P1[1]), Change = 0
-            if (Dy > Dx) {
-                let temp = Dx
-                Dx = Dy
-                Dy = temp
-                Change = 1
-            }
-            let E = 2 * Dy - Dx, A = 2 * Dy, B = 2 * Dy - 2 * Dx
-            ctx.fillRect(x-1, y-1, 2, 2)
-            for (let i = 0; i < Dx; i++) {
-                if (E < 0) {
-                    if (Change == 1) {
-                    y += S2
-                    } else {
-                    x += S1
-                    }
-                    E += A
-                } else {
-                    y += S2
-                    x += S1
-                    E += B
+    if (!dots) {
+        for (let i = 0; i < vtx.length-1; i++) {
+            if (toSkip.indexOf(i) == -1 && toSkip.indexOf(i+1) == -1) {
+                var P1 = vtx[i]
+                var P2 = vtx[i+1]
+                let y = P1[1], x = P1[0]
+                let Dx = Math.abs(P2[0] - P1[0]), Dy = Math.abs(P2[1] - P1[1]), S1 = Math.sign(P2[0] - P1[0]), S2 = Math.sign(P2[1] - P1[1]), Change = 0
+                if (Dy > Dx) {
+                    let temp = Dx
+                    Dx = Dy
+                    Dy = temp
+                    Change = 1
                 }
-                if (!dots) {
+                let E = 2 * Dy - Dx, A = 2 * Dy, B = 2 * Dy - 2 * Dx
+                ctx.fillRect(x-1, y-1, 2, 2)
+                for (let i = 0; i < Dx; i++) {
+                    if (E < 0) {
+                        if (Change == 1) {
+                        y += S2
+                        } else {
+                        x += S1
+                        }
+                        E += A
+                    } else {
+                        y += S2
+                        x += S1
+                        E += B
+                    }
                     ctx.fillRect(x-1, y-1, 2, 2)
                 }
             }
