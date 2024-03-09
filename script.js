@@ -9,7 +9,7 @@ const Isamp = document.getElementById("Isamp")
 const Osamp = document.getElementById("Osamp")
 const Done = document.getElementById("Done")
 const ctx = canvas.getContext("2d")
-input.value = "y=abs(cos(x^2)/sin(x/2))"
+input.value = ""
 Isamp.value = 1200
 
 let samples, vtx = [], toSkip = [], vtxtemp = [], dots = true, stop = false, running = false
