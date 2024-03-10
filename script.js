@@ -8,11 +8,13 @@ const input = document.getElementById("input")
 const Isamp = document.getElementById("Isamp")
 const Osamp = document.getElementById("Osamp")
 const Done = document.getElementById("Done")
+const mL = document.getElementById("mouseListener")
 const ctx = canvas.getContext("2d")
-input.value = "y=x"
+input.value = "y=x^2"
 Isamp.value = 1200
 
-let samples, vtx = [], toSkip = [], vtxtemp = [], dots = true, stop = false, running = false
+let samples, vtx = [], toSkip = [], vtxtemp = [], dots = true, stop = false, running = false, gridSize = 21
+let zoomF = 1
 
 const resize = new ResizeObserver(() => {
     Update()
@@ -38,8 +40,7 @@ async function Update() {
     canvas.height = Box.clientHeight
     ctx.fillStyle = "#404040"
     ctx.fillRect(0, 0, canvas.width, canvas.height)
-    drawAxis()
-    drawGrid()
+    drawGrid(gridSize)
     while (running) {
         await new Promise(resolve => setTimeout(resolve, 0));
     }
@@ -53,22 +54,56 @@ async function Update() {
 }
 
 function drawAxis() {
-    ctx.fillStyle = "#303030"
+    ctx.fillStyle = "#252525"
     ctx.fillRect(0, canvas.height/2-2, canvas.width, 4)
     ctx.fillRect(canvas.width/2-2, 0, 4, canvas.height)
 }
 
+function drawNum(qN, offset, qW, temp) {
+    let c = 0
+    ctx.fillStyle = "#fff"
+    ctx.font = "16px arial"
+    ctx.textAlign = "center"
+    for (let i = -1; i < qN+1; i++) {
+        if(offset.x+qW*(i+1) == canvas.width/2) {
+            c = i
+            break
+        }
+    }
+    for (let i = -1; i < qN+1; i++) {
+        let zoom = zoomF >= 1 ? zoomF-zoomF%1 : zoomF
+        let txt = Math.round((c-i)*-1/zoom*100)/100
+        ctx.fillText(txt, offset.x+qW*(i+1), canvas.height/2)
+    }
+    for (let i = -1; i < Math.ceil(canvas.height/qW)+5; i++) {
+        if (qW*i+offset.y == canvas.height/2) {
+            c = i+1
+            break
+        }
+    }
+    for (let i = -1; i < Math.ceil(canvas.height/qW)+5; i++) {
+        let zoom = zoomF >= 1 ? zoomF-zoomF%1 : zoomF
+        let txt = Math.round((c-i)/zoom*100)/100
+        ctx.fillText(txt, canvas.width/2, offset.y+qW*(i-1))
+    }
+}
+
 function drawGrid() {
-    let qWidth = canvas.width/30
-    let offset = canvas.height/2%qWidth
-    for (let i = 0; i < 30; i++) {
-        ctx.fillStyle = "#353535"
-        ctx.fillRect(qWidth*i-1, 0, 2, canvas.height)
+    let qN = zoomF >= 1 ? Math.ceil(gridSize/((zoomF%1/2)+1)) : gridSize+((gridSize/zoomF)%gridSize)
+    qN = qN % 2 != 0 ? qN+=1 : qN
+    let temp = 0
+    let qW = canvas.width/qN
+    let offset = {x: canvas.width/2%qW, y:canvas.height/2%qW}
+    ctx.fillStyle= "#353535"
+    for (let i = -1; i < qN+1; i++) {
+        ctx.fillRect(canvas.width/qN*i+offset.x-1, 0, 2, canvas.height)
     }
-    for (let i = 0; i < Math.ceil(canvas.height/qWidth); i++) {
-        ctx.fillStyle = "#353535"
-        ctx.fillRect(0, qWidth*i-1+offset, canvas.width, 2)
+    for (let i = -1; i < Math.ceil(canvas.height/qW)+5; i++) {
+        ctx.fillRect(0, qW*i+offset.y-1, canvas.width, 2)
+        temp++
     }
+    drawAxis()
+    drawNum(qN, offset, qW, temp)
 }
 
 input.addEventListener("change", Update)
@@ -84,8 +119,8 @@ async function drawPoints() {
         let temp
         for (let i = 0; i < samples+1; i++) {
             if (!stop) {
-                Done.innerHTML = `${Math.round(i/samples*10000)/100}%`
-                var x = (i - Math.floor(samples/2))/Math.floor(samples/30)
+                Done.innerHTML = `${Math.round(i/samples*1000)/10}%`
+                var x = (i - Math.floor(samples/2))/Math.floor(samples/gridSize*zoomF)
                 let ExpX = [Exp[0], Exp[1]]
                 for (let i = 0; i < 2; i++) {
                     ExpX[i] = normalize(ExpX[i].replaceAll("x", `(${x})`))
@@ -98,8 +133,8 @@ async function drawPoints() {
                     }
                     solY.forEach((varY) => {
                         let y = eval(varY.toString())
-                        vtx.push([x*canvas.width/30+canvas.width/2, -y*canvas.width/30+canvas.height/2])
-                        ctx.fillRect(x*canvas.width/30+canvas.width/2-1, -y*canvas.width/30+canvas.height/2, 2, 2)
+                        vtx.push([x*canvas.width/gridSize*zoomF+canvas.width/2, -y*canvas.width/gridSize*zoomF+canvas.height/2])
+                        ctx.fillRect(x*canvas.width/gridSize*zoomF+canvas.width/2-1, -y*canvas.width/gridSize*zoomF+canvas.height/2-1, 2, 2)
                         if(i!=0)
                         if (Math.abs(y-temp) > canvas.width/50 && solY.length == 1) {
                             toSkip.push(i)
@@ -111,7 +146,7 @@ async function drawPoints() {
                         toSkip.push(i)
                     }
                 }
-                if (i%Math.round(((samples/24000)*10)) == 0) {
+                if (i%Math.round(((samples/24000)*30)) == 0) {
                     await new Promise(resolve => setTimeout(resolve, 0))
                 }
             } else {
@@ -122,6 +157,9 @@ async function drawPoints() {
         
         DrawLines()
         running = false
+    } else {
+        running = false
+        return
     }
 }
 
@@ -219,3 +257,12 @@ function DrawLines() {
         }
     }
 }
+
+mL.addEventListener("wheel", (e) => {
+    if (e.deltaY < 0 && zoomF < 10) {
+        zoomF+=0.1
+    } else if (zoomF > 0.2) {
+        zoomF-=0.1
+    }
+    Update()
+})
